@@ -1,2 +1,2 @@
-# butterfloyology.github.io
+## butterflyology.github.io
 Personal webpage for Chris Hamm
