@@ -1,0 +1,1070 @@
+<html>
+
+<head>
+<style type="text/css">
+.knitr.inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+},
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0em 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.rimage.left {
+  text-align: left;
+}
+.rimage.right {
+  text-align: right;
+}
+.rimage.center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.str {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.std {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+<title>Estimating abundance of the federally endangered Mitchell’s satyr butterfly using hierarchical distance sampling</title>
+</head>
+
+<body>
+<p>Here are the data and statistical code, <b>written in R</b>, for my 2013 paper on distance sampling <i>Neonympha m. mitchellii</i> that appeared in <b>Insect Conservation and Diversity</b> 6: 619-626:</p>
+
+<p>First we will set the seed and load the <b>unmarked</b> package</p>
+<div class="chunk" id="unnamed-chunk-1"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">require</span><span class="hl std">(unmarked)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: unmarked
+## Loading required package: reshape
+## Loading required package: plyr
+## 
+## Attaching package: 'reshape'
+## 
+## The following objects are masked from 'package:plyr':
+## 
+##     rename, round_any
+## 
+## Loading required package: lattice
+## Loading required package: Rcpp
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">set.seed</span><span class="hl std">(</span><span class="hl num">8</span><span class="hl std">)</span>
+</pre></div>
+</div></div>
+
+
+<p>Now we import the data and examine it</p>
+<div class="chunk" id="unnamed-chunk-2"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">ds4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;~/Desktop/Data/MSB_Distance/ds_Lib_4a_Jul.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">header</span> <span class="hl std">=</span> <span class="hl num">TRUE</span><span class="hl std">)</span>
+<span class="hl kwd">head</span><span class="hl std">(ds4)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Transect D0 D1 D2 D3 D4 Length Unit
+## 1     P1P2  0  0  0  0  0     92    A
+## 2     P4P3  1  0  0  0  0     84    A
+## 3     P5P6  0  1  0  0  0     82    A
+## 4     P8P7  1  0  0  0  0     49    A
+## 5    P9P10  0  0  0  1  0     25    A
+## 6   P12P11  1  0  0  0  0     24    A
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">str</span><span class="hl std">(ds4)</span>  <span class="hl com">#Want to confirm that Habitat (which is the management unit the transect occurred in) is treated as a factor</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 'data.frame':	27 obs. of  8 variables:
+##  $ Transect: Factor w/ 27 levels "P12P11","P13P14",..: 5 21 22 23 24 1 2 3 4 6 ...
+##  $ D0      : int  0 1 0 1 0 1 4 2 1 0 ...
+##  $ D1      : int  0 0 1 0 0 0 3 1 0 1 ...
+##  $ D2      : int  0 0 0 0 0 0 0 1 0 2 ...
+##  $ D3      : int  0 0 0 0 1 0 0 1 0 0 ...
+##  $ D4      : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ Length  : int  92 84 82 49 25 24 60 59 61 65 ...
+##  $ Unit    : Factor w/ 4 levels "A","B","C","D": 1 1 1 1 1 1 1 1 1 2 ...
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(ds4)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##     Transect        D0             D1          D2              D3       
+##  P12P11 : 1   Min.   :0.00   Min.   :0   Min.   :0.000   Min.   :0.000  
+##  P13P14 : 1   1st Qu.:1.00   1st Qu.:0   1st Qu.:0.000   1st Qu.:0.000  
+##  P16P15 : 1   Median :1.00   Median :0   Median :0.000   Median :0.000  
+##  P17P18 : 1   Mean   :1.59   Mean   :1   Mean   :0.778   Mean   :0.556  
+##  P1P2   : 1   3rd Qu.:2.00   3rd Qu.:2   3rd Qu.:1.500   3rd Qu.:1.000  
+##  P20P19 : 1   Max.   :5.00   Max.   :4   Max.   :3.000   Max.   :3.000  
+##  (Other):21                                                             
+##        D4            Length      Unit 
+##  Min.   :0.000   Min.   : 24.0   A:9  
+##  1st Qu.:0.000   1st Qu.: 51.0   B:7  
+##  Median :0.000   Median : 60.0   C:8  
+##  Mean   :0.296   Mean   : 63.9   D:3  
+##  3rd Qu.:0.000   3rd Qu.: 79.0        
+##  Max.   :2.000   Max.   :103.0        
+## 
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">sum</span><span class="hl std">(ds4[,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">])</span>  <span class="hl com">#Sum observations across transects</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 114
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># 6th of July 2011</span>
+<span class="hl std">ds6</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;~/Desktop/Data/MSB_Distance/ds_Lib_6a_Jul.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">header</span> <span class="hl std">=</span> <span class="hl num">TRUE</span><span class="hl std">)</span>
+<span class="hl kwd">head</span><span class="hl std">(ds6)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Transect D0 D1 D2 D3 D4 Length Unit
+## 1     Q1Q2  0  1  0  0  1     95    A
+## 2     Q4Q3  0  0  0  0  0     84    A
+## 3     Q5Q6  1  1  0  1  0     88    A
+## 4     Q8Q7  0  0  0  0  0     44    A
+## 5    Q9Q10  1  1  0  0  0     35    A
+## 6   Q12Q11  1  0  0  0  0     25    A
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">str</span><span class="hl std">(ds6)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 'data.frame':	24 obs. of  8 variables:
+##  $ Transect: Factor w/ 24 levels "Q12Q11","Q13Q14",..: 5 18 19 20 21 1 2 3 4 6 ...
+##  $ D0      : int  0 0 1 0 1 1 1 1 1 0 ...
+##  $ D1      : int  1 0 1 0 1 0 0 0 1 1 ...
+##  $ D2      : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ D3      : int  0 0 1 0 0 0 0 0 0 0 ...
+##  $ D4      : int  1 0 0 0 0 0 0 0 0 0 ...
+##  $ Length  : int  95 84 88 44 35 25 45 60 61 70 ...
+##  $ Unit    : Factor w/ 3 levels "A","B","D": 1 1 1 1 1 1 1 1 1 1 ...
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(ds6)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##     Transect        D0             D1              D2       
+##  Q12Q11 : 1   Min.   :0.00   Min.   :0.000   Min.   :0.000  
+##  Q13Q14 : 1   1st Qu.:0.00   1st Qu.:0.000   1st Qu.:0.000  
+##  Q16Q15 : 1   Median :1.00   Median :1.000   Median :0.000  
+##  Q17Q18 : 1   Mean   :1.12   Mean   :0.917   Mean   :0.417  
+##  Q1Q2   : 1   3rd Qu.:2.00   3rd Qu.:2.000   3rd Qu.:0.250  
+##  Q20Q19 : 1   Max.   :3.00   Max.   :3.000   Max.   :3.000  
+##  (Other):18                                                 
+##        D3              D4            Length     Unit  
+##  Min.   :0.000   Min.   :0.000   Min.   :25.0   A:10  
+##  1st Qu.:0.000   1st Qu.:0.000   1st Qu.:57.0   B:11  
+##  Median :0.000   Median :0.000   Median :70.5   D: 3  
+##  Mean   :0.417   Mean   :0.208   Mean   :69.1         
+##  3rd Qu.:1.000   3rd Qu.:0.000   3rd Qu.:89.0         
+##  Max.   :2.000   Max.   :1.000   Max.   :98.0         
+## 
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">sum</span><span class="hl std">(ds6[,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">])</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 74
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># 7th of July 2011</span>
+<span class="hl std">ds7</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;~/Desktop/Data/MSB_Distance/ds_Lib_7b_Jul.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">header</span> <span class="hl std">=</span> <span class="hl num">TRUE</span><span class="hl std">)</span>
+<span class="hl kwd">head</span><span class="hl std">(ds7)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Trasect D0 D1 D2 D3 D4 Length Unit
+## 1    Y1Y2  1  0  0  0  0    101    A
+## 2    Y4Y3  0  0  0  0  0     46    A
+## 3    Y5Y6  0  0  0  0  0     15    A
+## 4    Y8Y7  0  0  0  1  0     35    A
+## 5   Y9Y10  1  0  0  0  1     47    A
+## 6  Y12Y11  0  0  0  0  0     52    A
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">str</span><span class="hl std">(ds7)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 'data.frame':	25 obs. of  8 variables:
+##  $ Trasect: Factor w/ 25 levels "Y12Y11","Y13Y14",..: 5 19 20 21 22 1 2 3 4 6 ...
+##  $ D0     : int  1 0 0 0 1 0 0 1 2 0 ...
+##  $ D1     : int  0 0 0 0 0 0 0 0 1 0 ...
+##  $ D2     : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ D3     : int  0 0 0 1 0 0 0 0 1 0 ...
+##  $ D4     : int  0 0 0 0 1 0 0 0 0 0 ...
+##  $ Length : int  101 46 15 35 47 52 56 37 54 67 ...
+##  $ Unit   : Factor w/ 3 levels "A","B","D": 1 1 1 1 1 1 1 1 1 2 ...
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(ds7)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##     Trasect         D0             D1             D2             D3      
+##  Y12Y11 : 1   Min.   :0.00   Min.   :0.00   Min.   :0.00   Min.   :0.00  
+##  Y13Y14 : 1   1st Qu.:0.00   1st Qu.:0.00   1st Qu.:0.00   1st Qu.:0.00  
+##  Y16Y15 : 1   Median :1.00   Median :1.00   Median :0.00   Median :0.00  
+##  Y17Y18 : 1   Mean   :0.92   Mean   :0.56   Mean   :0.36   Mean   :0.36  
+##  Y1Y2   : 1   3rd Qu.:2.00   3rd Qu.:1.00   3rd Qu.:0.00   3rd Qu.:1.00  
+##  Y20Y19 : 1   Max.   :4.00   Max.   :2.00   Max.   :3.00   Max.   :2.00  
+##  (Other):19                                                              
+##        D4           Length      Unit  
+##  Min.   :0.00   Min.   : 15.0   A: 9  
+##  1st Qu.:0.00   1st Qu.: 47.0   B:13  
+##  Median :0.00   Median : 56.0   D: 3  
+##  Mean   :0.16   Mean   : 61.3         
+##  3rd Qu.:0.00   3rd Qu.: 79.0         
+##  Max.   :1.00   Max.   :101.0         
+## 
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">sum</span><span class="hl std">(ds7[,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">])</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 59
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># 8th of July 2011</span>
+<span class="hl std">ds8</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;~/Desktop/Data/MSB_Distance/ds_Lib_8b_Jul.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">header</span> <span class="hl std">=</span> <span class="hl num">TRUE</span><span class="hl std">)</span>
+<span class="hl kwd">head</span><span class="hl std">(ds8)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Transect D0 D1 D2 D3 D4 Length Unit
+## 1     G1G2  0  1  0  0  0     92    A
+## 2     G4G3  0  0  0  0  0     83    A
+## 3     G5G6  1  0  0  0  0     87    A
+## 4     G8G7  0  1  1  0  0     43    A
+## 5    G9G10  0  0  0  0  1     38    A
+## 6   G12G11  0  0  0  0  0     44    A
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">str</span><span class="hl std">(ds8)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 'data.frame':	33 obs. of  8 variables:
+##  $ Transect: Factor w/ 33 levels "G12G11","G13G14",..: 5 22 27 29 30 1 2 3 4 6 ...
+##  $ D0      : int  0 0 1 0 0 0 0 0 2 0 ...
+##  $ D1      : int  1 0 0 1 0 0 1 1 1 0 ...
+##  $ D2      : int  0 0 0 1 0 0 1 0 0 0 ...
+##  $ D3      : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ D4      : int  0 0 0 0 1 0 0 0 0 0 ...
+##  $ Length  : int  92 83 87 43 38 44 52 53 32 38 ...
+##  $ Unit    : Factor w/ 4 levels "A","B","C","D": 1 1 1 1 1 1 1 1 1 1 ...
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(ds8)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##     Transect        D0              D1              D2       
+##  G12G11 : 1   Min.   :0.000   Min.   :0.000   Min.   :0.000  
+##  G13G14 : 1   1st Qu.:0.000   1st Qu.:0.000   1st Qu.:0.000  
+##  G16G15 : 1   Median :0.000   Median :0.000   Median :0.000  
+##  G17G18 : 1   Mean   :0.545   Mean   :0.424   Mean   :0.364  
+##  G1G2   : 1   3rd Qu.:1.000   3rd Qu.:1.000   3rd Qu.:1.000  
+##  G20G19 : 1   Max.   :2.000   Max.   :2.000   Max.   :2.000  
+##  (Other):27                                                  
+##        D3              D4            Length     Unit  
+##  Min.   :0.000   Min.   :0.000   Min.   :26.0   A:11  
+##  1st Qu.:0.000   1st Qu.:0.000   1st Qu.:38.0   B:12  
+##  Median :0.000   Median :0.000   Median :52.0   C: 7  
+##  Mean   :0.303   Mean   :0.273   Mean   :52.4   D: 3  
+##  3rd Qu.:0.000   3rd Qu.:0.000   3rd Qu.:63.0         
+##  Max.   :3.000   Max.   :2.000   Max.   :92.0         
+## 
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">sum</span><span class="hl std">(ds8[,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">])</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 63
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># 12th of July 2011</span>
+<span class="hl std">ds12</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;~/Desktop/Data/MSB_Distance/ds_Lib_12b_Jul.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">header</span> <span class="hl std">= T)</span>
+<span class="hl kwd">head</span><span class="hl std">(ds12)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Transect D0 D1 D2 D3 D4 Length Unit
+## 1     S1S2  1  1  0  0  0     57    B
+## 2     S4S3  0  0  0  0  0     70    B
+## 3     S5S6  0  1  0  0  0     66    B
+## 4     S8S7  1  0  1  0  0     68    B
+## 5    S9S10  1  0  0  0  0     59    B
+## 6   S12S11  1  0  0  0  0     60    B
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">str</span><span class="hl std">(ds12)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 'data.frame':	16 obs. of  8 variables:
+##  $ Transect: Factor w/ 16 levels "S12S11","S13S14",..: 5 13 14 15 16 1 2 3 4 6 ...
+##  $ D0      : int  1 0 0 1 1 1 0 1 1 0 ...
+##  $ D1      : int  1 0 1 0 0 0 0 0 0 0 ...
+##  $ D2      : int  0 0 0 1 0 0 0 0 0 0 ...
+##  $ D3      : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ D4      : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ Length  : int  57 70 66 68 59 60 38 37 53 28 ...
+##  $ Unit    : Factor w/ 2 levels "B","C": 1 1 1 1 1 1 1 1 1 2 ...
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">summary</span><span class="hl std">(ds12)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##     Transect        D0              D1             D2       
+##  S12S11 : 1   Min.   :0.000   Min.   :0.00   Min.   :0.000  
+##  S13S14 : 1   1st Qu.:0.000   1st Qu.:0.00   1st Qu.:0.000  
+##  S16S15 : 1   Median :0.000   Median :0.00   Median :0.000  
+##  S17S18 : 1   Mean   :0.375   Mean   :0.25   Mean   :0.125  
+##  S1S2   : 1   3rd Qu.:1.000   3rd Qu.:0.25   3rd Qu.:0.000  
+##  S20S19 : 1   Max.   :1.000   Max.   :1.00   Max.   :1.000  
+##  (Other):10                                                 
+##        D3              D4             Length     Unit 
+##  Min.   :0.000   Min.   :0.0000   Min.   :26.0   B:9  
+##  1st Qu.:0.000   1st Qu.:0.0000   1st Qu.:36.8   C:7  
+##  Median :0.000   Median :0.0000   Median :49.5        
+##  Mean   :0.125   Mean   :0.0625   Mean   :47.7        
+##  3rd Qu.:0.000   3rd Qu.:0.0000   3rd Qu.:59.2        
+##  Max.   :1.000   Max.   :1.0000   Max.   :70.0        
+## 
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">sum</span><span class="hl std">(ds12[,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">])</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 15
+</pre></div>
+</div></div>
+
+
+<p>We have our data loaded and everything looks good. Now we need to create the <b>unmarked</b> frame</p>
+<div class="chunk" id="unnamed-chunk-3"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com"># 4 July</span>
+<span class="hl std">J4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">unmarkedFrameDS</span><span class="hl std">(</span><span class="hl kwc">y</span> <span class="hl std">=</span> <span class="hl kwd">cbind</span><span class="hl std">(ds4</span><span class="hl opt">$</span><span class="hl std">D0, ds4</span><span class="hl opt">$</span><span class="hl std">D1, ds4</span><span class="hl opt">$</span><span class="hl std">D2, ds4</span><span class="hl opt">$</span><span class="hl std">D3, ds4</span><span class="hl opt">$</span><span class="hl std">D4),</span> <span class="hl kwc">siteCovs</span> <span class="hl std">=</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">= ds4</span><span class="hl opt">$</span><span class="hl std">Unit),</span>
+    <span class="hl kwc">dist.breaks</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl std">,</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl num">4</span><span class="hl std">,</span> <span class="hl num">5</span><span class="hl std">),</span> <span class="hl kwc">tlength</span> <span class="hl std">= ds4</span><span class="hl opt">$</span><span class="hl std">Length,</span> <span class="hl kwc">survey</span> <span class="hl std">=</span> <span class="hl str">&quot;line&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsIn</span> <span class="hl std">=</span> <span class="hl str">&quot;m&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">summary</span><span class="hl std">(J4)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## unmarkedFrameDS Object
+## 
+## line-transect survey design
+## Distance class cutpoints (m):  0 1 2 3 4 5 
+## 
+## 27 sites
+## Maximum number of distance classes per site: 5 
+## Mean number of distance classes per site: 5 
+## Sites with at least one detection: 26 
+## 
+## Tabulation of y observations:
+##    0    1    2    3    4    5 <NA> 
+##   73   29   20    8    4    1    0 
+## 
+## Site-level covariates:
+##  Unit 
+##  A:9  
+##  B:7  
+##  C:8  
+##  D:3
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># 6th of July 2011</span>
+<span class="hl std">J6</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">unmarkedFrameDS</span><span class="hl std">(</span><span class="hl kwc">y</span> <span class="hl std">=</span> <span class="hl kwd">cbind</span><span class="hl std">(ds6</span><span class="hl opt">$</span><span class="hl std">D0, ds6</span><span class="hl opt">$</span><span class="hl std">D1, ds6</span><span class="hl opt">$</span><span class="hl std">D2, ds6</span><span class="hl opt">$</span><span class="hl std">D3, ds6</span><span class="hl opt">$</span><span class="hl std">D4),</span> <span class="hl kwc">siteCovs</span> <span class="hl std">=</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">= ds6</span><span class="hl opt">$</span><span class="hl std">Unit),</span>
+    <span class="hl kwc">dist.breaks</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl std">,</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl num">4</span><span class="hl std">,</span> <span class="hl num">5</span><span class="hl std">),</span> <span class="hl kwc">tlength</span> <span class="hl std">= ds6</span><span class="hl opt">$</span><span class="hl std">Length,</span> <span class="hl kwc">survey</span> <span class="hl std">=</span> <span class="hl str">&quot;line&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsIn</span> <span class="hl std">=</span> <span class="hl str">&quot;m&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">summary</span><span class="hl std">(J6)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## unmarkedFrameDS Object
+## 
+## line-transect survey design
+## Distance class cutpoints (m):  0 1 2 3 4 5 
+## 
+## 24 sites
+## Maximum number of distance classes per site: 5 
+## Mean number of distance classes per site: 5 
+## Sites with at least one detection: 22 
+## 
+## Tabulation of y observations:
+##    0    1    2    3 <NA> 
+##   72   29   12    7    0 
+## 
+## Site-level covariates:
+##  Unit  
+##  A:10  
+##  B:11  
+##  D: 3
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># 7th of July 2011</span>
+<span class="hl std">J7</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">unmarkedFrameDS</span><span class="hl std">(</span><span class="hl kwc">y</span> <span class="hl std">=</span> <span class="hl kwd">cbind</span><span class="hl std">(ds7</span><span class="hl opt">$</span><span class="hl std">D0, ds7</span><span class="hl opt">$</span><span class="hl std">D1, ds7</span><span class="hl opt">$</span><span class="hl std">D2, ds7</span><span class="hl opt">$</span><span class="hl std">D3, ds7</span><span class="hl opt">$</span><span class="hl std">D4),</span> <span class="hl kwc">siteCovs</span> <span class="hl std">=</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">= ds7</span><span class="hl opt">$</span><span class="hl std">Unit),</span>
+    <span class="hl kwc">dist.breaks</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl std">,</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl num">4</span><span class="hl std">,</span> <span class="hl num">5</span><span class="hl std">),</span> <span class="hl kwc">tlength</span> <span class="hl std">= ds7</span><span class="hl opt">$</span><span class="hl std">Length,</span> <span class="hl kwc">survey</span> <span class="hl std">=</span> <span class="hl str">&quot;line&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsIn</span> <span class="hl std">=</span> <span class="hl str">&quot;m&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">summary</span><span class="hl std">(J7)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## unmarkedFrameDS Object
+## 
+## line-transect survey design
+## Distance class cutpoints (m):  0 1 2 3 4 5 
+## 
+## 25 sites
+## Maximum number of distance classes per site: 5 
+## Mean number of distance classes per site: 5 
+## Sites with at least one detection: 19 
+## 
+## Tabulation of y observations:
+##    0    1    2    3    4 <NA> 
+##   80   34    9    1    1    0 
+## 
+## Site-level covariates:
+##  Unit  
+##  A: 9  
+##  B:13  
+##  D: 3
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># 8th of July 2011</span>
+<span class="hl std">J8</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">unmarkedFrameDS</span><span class="hl std">(</span><span class="hl kwc">y</span> <span class="hl std">=</span> <span class="hl kwd">cbind</span><span class="hl std">(ds8</span><span class="hl opt">$</span><span class="hl std">D0, ds8</span><span class="hl opt">$</span><span class="hl std">D1, ds8</span><span class="hl opt">$</span><span class="hl std">D2, ds8</span><span class="hl opt">$</span><span class="hl std">D3, ds8</span><span class="hl opt">$</span><span class="hl std">D4),</span> <span class="hl kwc">siteCovs</span> <span class="hl std">=</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">= ds8</span><span class="hl opt">$</span><span class="hl std">Unit),</span>
+    <span class="hl kwc">dist.breaks</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl std">,</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl num">4</span><span class="hl std">,</span> <span class="hl num">5</span><span class="hl std">),</span> <span class="hl kwc">tlength</span> <span class="hl std">= ds8</span><span class="hl opt">$</span><span class="hl std">Length,</span> <span class="hl kwc">survey</span> <span class="hl std">=</span> <span class="hl str">&quot;line&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsIn</span> <span class="hl std">=</span> <span class="hl str">&quot;m&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">summary</span><span class="hl std">(J8)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## unmarkedFrameDS Object
+## 
+## line-transect survey design
+## Distance class cutpoints (m):  0 1 2 3 4 5 
+## 
+## 33 sites
+## Maximum number of distance classes per site: 5 
+## Mean number of distance classes per site: 5 
+## Sites with at least one detection: 27 
+## 
+## Tabulation of y observations:
+##    0    1    2    3 <NA> 
+##  113   42    9    1    0 
+## 
+## Site-level covariates:
+##  Unit  
+##  A:11  
+##  B:12  
+##  C: 7  
+##  D: 3
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># 12th of July 2011</span>
+<span class="hl std">J12</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">unmarkedFrameDS</span><span class="hl std">(</span><span class="hl kwc">y</span> <span class="hl std">=</span> <span class="hl kwd">cbind</span><span class="hl std">(ds12</span><span class="hl opt">$</span><span class="hl std">D0, ds12</span><span class="hl opt">$</span><span class="hl std">D1, ds12</span><span class="hl opt">$</span><span class="hl std">D2, ds12</span><span class="hl opt">$</span><span class="hl std">D3, ds12</span><span class="hl opt">$</span><span class="hl std">D4),</span>
+    <span class="hl kwc">siteCovs</span> <span class="hl std">=</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">= ds12</span><span class="hl opt">$</span><span class="hl std">Unit),</span> <span class="hl kwc">dist.breaks</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl std">,</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl num">4</span><span class="hl std">,</span>
+        <span class="hl num">5</span><span class="hl std">),</span> <span class="hl kwc">tlength</span> <span class="hl std">= ds12</span><span class="hl opt">$</span><span class="hl std">Length,</span> <span class="hl kwc">survey</span> <span class="hl std">=</span> <span class="hl str">&quot;line&quot;</span><span class="hl std">,</span> <span class="hl kwc">unitsIn</span> <span class="hl std">=</span> <span class="hl str">&quot;m&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">summary</span><span class="hl std">(J12)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## unmarkedFrameDS Object
+## 
+## line-transect survey design
+## Distance class cutpoints (m):  0 1 2 3 4 5 
+## 
+## 16 sites
+## Maximum number of distance classes per site: 5 
+## Mean number of distance classes per site: 5 
+## Sites with at least one detection: 11 
+## 
+## Tabulation of y observations:
+##    0    1 <NA> 
+##   65   15    0 
+## 
+## Site-level covariates:
+##  Unit 
+##  B:9  
+##  C:7
+</pre></div>
+</div></div>
+
+
+<p>With our data prepared for analysis I want to look at the total length of transects I walked and the total number of butterflies observed</p>
+<div class="chunk" id="unnamed-chunk-4"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com"># Sum the total transect lengths</span>
+<span class="hl std">TLen</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">matrix</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl kwd">sum</span><span class="hl std">(ds4</span><span class="hl opt">$</span><span class="hl std">Length[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">24</span><span class="hl std">]),</span> <span class="hl kwd">sum</span><span class="hl std">(ds6</span><span class="hl opt">$</span><span class="hl std">Length[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">21</span><span class="hl std">]),</span> <span class="hl kwd">sum</span><span class="hl std">(ds7</span><span class="hl opt">$</span><span class="hl std">Length[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">22</span><span class="hl std">]),</span>
+    <span class="hl kwd">sum</span><span class="hl std">(ds8</span><span class="hl opt">$</span><span class="hl std">Length[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">30</span><span class="hl std">]),</span> <span class="hl kwd">sum</span><span class="hl std">(ds12</span><span class="hl opt">$</span><span class="hl std">Length)),</span> <span class="hl kwc">nrow</span> <span class="hl std">=</span> <span class="hl num">5</span><span class="hl std">,</span> <span class="hl kwc">ncol</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">byrow</span> <span class="hl std">= T,</span>
+    <span class="hl kwc">dimnames</span> <span class="hl std">=</span> <span class="hl kwd">list</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;4 July&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;6 July&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;7 July&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;8 July&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;12 July&quot;</span><span class="hl std">),</span> <span class="hl str">&quot;Transect Length&quot;</span><span class="hl std">))</span>
+<span class="hl std">TLen</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##         Transect Length
+## 4 July             1548
+## 6 July             1474
+## 7 July             1395
+## 8 July             1576
+## 12 July             763
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">sum</span><span class="hl std">(TLen)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 6756
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># Sum the number of butterflies observed</span>
+<span class="hl std">Nbfly</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">matrix</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl kwd">sum</span><span class="hl std">(ds4[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">24</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">]),</span> <span class="hl kwd">sum</span><span class="hl std">(ds6[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">21</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">]),</span> <span class="hl kwd">sum</span><span class="hl std">(ds7[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">22</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">]),</span>
+    <span class="hl kwd">sum</span><span class="hl std">(ds8[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">30</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">]),</span> <span class="hl kwd">sum</span><span class="hl std">(ds12[</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">16</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl opt">:</span><span class="hl num">6</span><span class="hl std">])),</span> <span class="hl kwc">nrow</span> <span class="hl std">=</span> <span class="hl num">5</span><span class="hl std">,</span> <span class="hl kwc">ncol</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">byrow</span> <span class="hl std">= T,</span>
+    <span class="hl kwc">dimnames</span> <span class="hl std">=</span> <span class="hl kwd">list</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;4 July&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;6 July&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;7 July&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;8 July&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;12 July&quot;</span><span class="hl std">),</span> <span class="hl str">&quot;N Butterflies&quot;</span><span class="hl std">))</span>
+<span class="hl std">Nbfly</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##         N Butterflies
+## 4 July            103
+## 6 July             58
+## 7 July             45
+## 8 July             54
+## 12 July            15
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">sum</span><span class="hl std">(Nbfly)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 275
+</pre></div>
+</div></div>
+
+
+<p>Now I want to visualize the data</p>
+<div class="chunk" id="fig.width=7, fig.height=6"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com"># Histograms of distance distributions by survey date, this is how I made</span>
+<span class="hl com"># figure 3 in the paper.</span>
+<span class="hl kwd">par</span><span class="hl std">(</span><span class="hl kwc">mfrow</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">5</span><span class="hl std">),</span> <span class="hl kwc">mar</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">4.5</span><span class="hl std">,</span> <span class="hl num">4.2</span><span class="hl std">,</span> <span class="hl num">2</span><span class="hl std">,</span> <span class="hl num">1.5</span><span class="hl std">))</span>
+<span class="hl kwd">hist</span><span class="hl std">(J4,</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">,</span> <span class="hl kwc">main</span> <span class="hl std">=</span> <span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl kwc">xlab</span> <span class="hl std">=</span> <span class="hl str">&quot;Distance (m)&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylab</span> <span class="hl std">=</span> <span class="hl str">&quot;# Butterflies Observed&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">ylim</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl num">50</span><span class="hl std">),</span> <span class="hl kwc">las</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">cex.lab</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">,</span> <span class="hl kwc">cex.axis</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>  <span class="hl com">#cex to make text larger?</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">50</span><span class="hl std">,</span> <span class="hl str">&quot;A&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl kwd">hist</span><span class="hl std">(J6,</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">,</span> <span class="hl kwc">main</span> <span class="hl std">=</span> <span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl kwc">xlab</span> <span class="hl std">=</span> <span class="hl str">&quot;Distance (m)&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylab</span> <span class="hl std">=</span> <span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylim</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span>
+    <span class="hl num">30</span><span class="hl std">),</span> <span class="hl kwc">las</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">cex.lab</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">,</span> <span class="hl kwc">cex.axis</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">30</span><span class="hl std">,</span> <span class="hl str">&quot;B&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl kwd">hist</span><span class="hl std">(J7,</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">,</span> <span class="hl kwc">main</span> <span class="hl std">=</span> <span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl kwc">xlab</span> <span class="hl std">=</span> <span class="hl str">&quot;Distance (m)&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylab</span> <span class="hl std">=</span> <span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylim</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span>
+    <span class="hl num">25</span><span class="hl std">),</span> <span class="hl kwc">las</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">cex.lab</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">,</span> <span class="hl kwc">cex.axis</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>  <span class="hl com">#Odd distribution, but these are the data</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">25</span><span class="hl std">,</span> <span class="hl str">&quot;C&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl kwd">hist</span><span class="hl std">(J8,</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">,</span> <span class="hl kwc">main</span> <span class="hl std">=</span> <span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl kwc">xlab</span> <span class="hl std">=</span> <span class="hl str">&quot;Distance (m)&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylab</span> <span class="hl std">=</span> <span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylim</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span>
+    <span class="hl num">20</span><span class="hl std">),</span> <span class="hl kwc">las</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">cex.lab</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">,</span> <span class="hl kwc">cex.axis</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">20</span><span class="hl std">,</span> <span class="hl str">&quot;D&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl kwd">hist</span><span class="hl std">(J12,</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">,</span> <span class="hl kwc">main</span> <span class="hl std">=</span> <span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl kwc">xlab</span> <span class="hl std">=</span> <span class="hl str">&quot;Distance (m)&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylab</span> <span class="hl std">=</span> <span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylim</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span>
+    <span class="hl num">7</span><span class="hl std">),</span> <span class="hl kwc">las</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">cex.lab</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">,</span> <span class="hl kwc">cex.axis</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">7</span><span class="hl std">,</span> <span class="hl str">&quot;E&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/fig.width=7, fig.height=6.png" title="plot of chunk fig.width=7, fig.height=6" alt="plot of chunk fig.width=7, fig.height=6" class="plot" /></div></div>
+
+
+<p>With the data imported and visualized (and the data doo appear to look appropriate for HDS analysis) I fit the halfnormal and negative exponential functions. Both the hn and nexp seem biologically plausible for these data. Temperature and Relative Humidity did not vary during each survey, but the transect did occur on different management units. So I will use "Unit" as a covariate on detection and abundance.</p>
+<div class="chunk" id="unnamed-chunk-5"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com"># Half-normal models</span>
+<span class="hl std">j4.h1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J4,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;halfnorm&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j4.h2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j4.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j4.h3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j4.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j4.h4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j4.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+
+<span class="hl com"># Negative exponential models</span>
+<span class="hl std">j4.e1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J4,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;exp&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j4.e2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j4.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j4.e3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j4.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j4.e4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j4.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+</pre></div>
+</div></div>
+
+
+<p>Now I create a fitlist to conduct AIC model selection and prediction</p>
+<div class="chunk" id="unnamed-chunk-6"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">j4.list</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">fitList</span><span class="hl std">(</span><span class="hl kwc">`H ~1 ~1`</span> <span class="hl std">= j4.h1,</span> <span class="hl kwc">`H ~Unit ~1`</span> <span class="hl std">= j4.h2,</span> <span class="hl kwc">`H ~1 ~Unit`</span> <span class="hl std">= j4.h3,</span>
+    <span class="hl kwc">`H ~Unit ~Unit`</span> <span class="hl std">= j4.h4,</span> <span class="hl kwc">`E ~1 ~1`</span> <span class="hl std">= j4.e1,</span> <span class="hl kwc">`E ~Unit ~1`</span> <span class="hl std">= j4.e2,</span> <span class="hl kwc">`E ~1 ~Unit`</span> <span class="hl std">= j4.e3,</span>
+    <span class="hl kwc">`E ~Unit ~Unit`</span> <span class="hl std">= j4.e4)</span>
+<span class="hl kwd">modSel</span><span class="hl std">(j4.list)</span>  <span class="hl com">#j4.e2 is AIC best and the hn sister model is very close in dAIC units</span>
+</pre></div>
+<div class="warning"><pre class="knitr r">## Warning: NaNs produced
+## Warning: NaNs produced
+## Warning: NaNs produced
+</pre></div>
+<div class="output"><pre class="knitr r">##               nPars    AIC delta   AICwt cumltvWt
+## E ~Unit ~1        5 309.33  0.00 7.2e-01     0.72
+## H ~Unit ~1        5 311.78  2.45 2.1e-01     0.94
+## H ~1 ~Unit        5 314.23  4.90 6.2e-02     1.00
+## E ~1 ~1           2 322.02 12.69 1.3e-03     1.00
+## H ~1 ~1           2 323.32 13.98 6.6e-04     1.00
+## E ~1 ~Unit        5 343.30 33.97 3.0e-08     1.00
+## E ~Unit ~Unit     8 349.30 39.97 1.5e-09     1.00
+## H ~Unit ~Unit     8 349.30 39.97 1.5e-09     1.00
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">backTransform</span><span class="hl std">(j4.e2,</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;state&quot;</span><span class="hl std">)</span>  <span class="hl com">#Parameter estimates from the AIC best model</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## Backtransformed linear combination(s) of Density estimate(s)
+## 
+##  Estimate   SE LinComb (Intercept)
+##       157 24.8    5.06           1
+## 
+## Transformation: exp
+</pre></div>
+</div></div>
+
+
+<p>I want to make sure that the AIC best model reasonably approximates the data, so I will conduct a chi-square goodness of fit test</p>
+<div class="chunk" id="unnamed-chunk-7"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">chisq</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">fm</span><span class="hl std">) {</span>
+    <span class="hl std">observed</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">getY</span><span class="hl std">(fm</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl std">)</span>
+    <span class="hl std">expected</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">fitted</span><span class="hl std">(fm)</span>
+    <span class="hl kwd">sum</span><span class="hl std">((observed</span> <span class="hl opt">-</span> <span class="hl std">expected)</span><span class="hl opt">^</span><span class="hl num">2</span><span class="hl opt">/</span><span class="hl std">expected)</span>
+<span class="hl std">}</span>
+<span class="hl com"># 1000 bootstrap pseudo replicates, this will take a while</span>
+<span class="hl std">(pb.j4.e2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">parboot</span><span class="hl std">(j4.e2,</span> <span class="hl kwc">statistic</span> <span class="hl std">= chisq,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">))</span>  <span class="hl com">#The model passes the test, df=102</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j4.e2, statistic = chisq, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##    t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## 1 163           33.9             23.6       0.0629
+## 
+## t_B quantiles:
+##     0% 2.5% 25% 50% 75% 97.5% 100%
+## t*1 78   93 114 125 141   182  345
+## 
+## t0 = Original statistic compuated from data
+## t_B = Vector of bootstrap samples
+</pre></div>
+</div></div>
+
+<div class="chunk" id="unnamed-chunk-8"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">plot</span><span class="hl std">(pb.j4.e2,</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-8.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" class="plot" /></div></div>
+
+
+<p>I now want to generate model weighted averages for the density estimates</p>
+<div class="chunk" id="unnamed-chunk-9"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">newdataj4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;A&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;B&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;C&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;D&quot;</span><span class="hl std">))</span>
+<span class="hl std">(pj4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">predict</span><span class="hl std">(j4.list,</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;state&quot;</span><span class="hl std">,</span> <span class="hl kwc">newdata</span> <span class="hl std">= newdataj4,</span> <span class="hl kwc">appendData</span> <span class="hl std">= T))</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Predicted    SE lower upper Unit
+## 1     142.3 32.28 105.2 192.7    A
+## 2     147.4 27.74 109.3 199.0    B
+## 3     147.8 27.86 109.4 200.0    C
+## 4     145.3 29.65 106.6 199.0    D
+</pre></div>
+</div></div>
+
+
+<p>Bootstrap the AIC best model to extrapolate density estimate to abundance for the entire area</p>
+<div class="chunk" id="unnamed-chunk-10"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">est</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">fm</span><span class="hl std">,</span> <span class="hl kwc">A</span><span class="hl std">) {</span>
+    <span class="hl std">D</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">exp</span><span class="hl std">(</span><span class="hl kwd">coef</span><span class="hl std">(fm,</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;state&quot;</span><span class="hl std">))</span>
+    <span class="hl std">A</span> <span class="hl kwb">&lt;-</span> <span class="hl num">8.321</span>  <span class="hl com">#total area of the JCC site </span>
+    <span class="hl std">N</span> <span class="hl kwb">&lt;-</span> <span class="hl std">D</span> <span class="hl opt">*</span> <span class="hl std">A</span>
+    <span class="hl kwd">return</span><span class="hl std">(N)</span>
+<span class="hl std">}</span>
+<span class="hl kwd">parboot</span><span class="hl std">(j4.e2,</span> <span class="hl kwc">stat</span> <span class="hl std">= est,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j4.e2, statistic = est, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##            t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## lam(Int) 1305          -11.9              209         0.49
+## 
+## t_B quantiles:
+##           0% 2.5%  25%  50%  75% 97.5% 100%
+## lam(Int) 840  941 1165 1299 1449  1754 2039
+## 
+## t0 = Original statistic compuated from data
+## t_B = Vector of bootstrap samples
+</pre></div>
+</div></div>
+
+
+<p>Now the data for the 6th of July</p>
+<div class="chunk" id="unnamed-chunk-11"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com"># 6th of July, only Units A, B were visited</span>
+<span class="hl std">j6.h1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J6,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;halfnorm&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j6.h2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j6.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j6.h3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j6.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j6.h4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j6.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+
+<span class="hl std">j6.e1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J6,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;exp&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j6.e2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j6.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j6.e3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j6.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j6.e4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j6.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+
+<span class="hl std">j6.list</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">fitList</span><span class="hl std">(</span><span class="hl kwc">`H ~1 ~1`</span> <span class="hl std">= j6.h1,</span> <span class="hl kwc">`H ~Unit ~1`</span> <span class="hl std">= j6.h2,</span> <span class="hl kwc">`H ~1 ~Unit`</span> <span class="hl std">= j6.h3,</span>
+    <span class="hl kwc">`H ~Unit ~Unit`</span> <span class="hl std">= j6.h4,</span> <span class="hl kwc">`E ~1 ~1`</span> <span class="hl std">= j6.e1,</span> <span class="hl kwc">`E ~Unit ~1`</span> <span class="hl std">= j6.e2,</span> <span class="hl kwc">`E ~1 ~Unit`</span> <span class="hl std">= j6.e3,</span>
+    <span class="hl kwc">`E ~Unit ~Unit`</span> <span class="hl std">= j6.e4)</span>
+<span class="hl kwd">modSel</span><span class="hl std">(j6.list)</span>  <span class="hl com">#j6.e3 is AIC best</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##               nPars    AIC delta   AICwt cumltvWt
+## E ~1 ~Unit        4 226.45  0.00 0.40437     0.40
+## H ~1 ~Unit        4 227.19  0.74 0.27906     0.68
+## E ~Unit ~1        4 228.66  2.21 0.13403     0.82
+## E ~Unit ~Unit     6 229.20  2.75 0.10211     0.92
+## H ~Unit ~Unit     6 230.41  3.97 0.05565     0.98
+## H ~Unit ~1        4 232.19  5.75 0.02286     1.00
+## E ~1 ~1           2 238.20 11.75 0.00114     1.00
+## H ~1 ~1           2 238.94 12.49 0.00078     1.00
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">(pb.j6.e3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">parboot</span><span class="hl std">(j6.e3,</span> <span class="hl kwc">statistic</span> <span class="hl std">= chisq,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">))</span>  <span class="hl com">#Model passes</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j6.e3, statistic = chisq, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##    t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## 1 101          -15.3             17.2        0.824
+## 
+## t_B quantiles:
+##     0% 2.5% 25% 50% 75% 97.5% 100%
+## t*1 74   87 105 114 126   153  191
+## 
+## t0 = Original statistic compuated from data
+## t_B = Vector of bootstrap samples
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">newdataj6</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;A&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;B&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;D&quot;</span><span class="hl std">))</span>
+<span class="hl std">(pj6</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">predict</span><span class="hl std">(j6.list,</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;state&quot;</span><span class="hl std">,</span> <span class="hl kwc">newdata</span> <span class="hl std">= newdataj6,</span> <span class="hl kwc">appendData</span> <span class="hl std">= T))</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Predicted    SE lower upper Unit
+## 1     57.07 26.26 32.55 102.4    A
+## 2    106.81 26.32 71.37 160.2    B
+## 3    170.06 63.55 95.98 305.0    D
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">parboot</span><span class="hl std">(j6.e3,</span> <span class="hl kwc">stat</span> <span class="hl std">= est,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">)</span>  <span class="hl com">#469 (181-723), df = 57</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j6.e3, statistic = est, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##               t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## lam(Int)   415.4          -6.06           136.98        0.489
+## lam(UnitB)  20.2          -1.95             7.82        0.533
+## lam(UnitD)  33.6          -3.52            15.48        0.520
+## 
+## t_B quantiles:
+##               0% 2.5% 25% 50% 75% 97.5% 100%
+## lam(Int)   119.7  189 323 411 507   704 1042
+## lam(UnitB)   9.3   11  17  21  26    42   68
+## lam(UnitD)   8.5   16  27  34  44    76  131
+## 
+## t0 = Original statistic compuated from data
+## t_B = Vector of bootstrap samples
+</pre></div>
+</div></div>
+
+
+<p>Data from the 7th of July</p>
+<div class="chunk" id="unnamed-chunk-12"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">j7.h1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J7,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;halfnorm&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j7.h2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j7.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j7.h3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j7.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j7.h4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j7.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+
+<span class="hl std">j7.e1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J7,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;exp&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j7.e2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j7.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j7.e3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j7.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j7.e4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j7.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+
+<span class="hl std">j7.list</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">fitList</span><span class="hl std">(</span><span class="hl kwc">`H ~1 ~1`</span> <span class="hl std">= j7.h1,</span> <span class="hl kwc">`H ~Unit ~1`</span> <span class="hl std">= j7.h2,</span> <span class="hl kwc">`H ~1 ~Unit`</span> <span class="hl std">= j7.h3,</span>
+    <span class="hl kwc">`H ~Unit ~Unit`</span> <span class="hl std">= j7.h4,</span> <span class="hl kwc">`E ~1 ~1`</span> <span class="hl std">= j7.e1,</span> <span class="hl kwc">`E ~Unit ~1`</span> <span class="hl std">= j7.e2,</span> <span class="hl kwc">`E ~1 ~Unit`</span> <span class="hl std">= j7.e3,</span>
+    <span class="hl kwc">`E ~Unit ~Unit`</span> <span class="hl std">= j7.e4)</span>
+<span class="hl kwd">modSel</span><span class="hl std">(j7.list)</span>  <span class="hl com">#j7.e3 is AIC best, </span>
+</pre></div>
+<div class="output"><pre class="knitr r">##               nPars    AIC delta   AICwt cumltvWt
+## E ~1 ~Unit        4 203.29  0.00 0.44151     0.44
+## H ~1 ~Unit        4 204.54  1.24 0.23702     0.68
+## E ~Unit ~Unit     6 205.06  1.77 0.18250     0.86
+## H ~Unit ~Unit     6 205.78  2.48 0.12756     0.99
+## E ~Unit ~1        4 211.58  8.28 0.00702     1.00
+## E ~1 ~1           2 213.67 10.37 0.00247     1.00
+## H ~1 ~1           2 214.91 11.62 0.00133     1.00
+## H ~Unit ~1        4 216.54 13.25 0.00059     1.00
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">(pb.j7.e3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">parboot</span><span class="hl std">(j7.e3,</span> <span class="hl kwc">statistic</span> <span class="hl std">= chisq,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">))</span>  <span class="hl com">#passed the test</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j7.e3, statistic = chisq, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##    t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## 1 111          -9.67             18.4        0.672
+## 
+## t_B quantiles:
+##     0% 2.5% 25% 50% 75% 97.5% 100%
+## t*1 76   91 108 118 131   164  201
+## 
+## t0 = Original statistic compuated from data
+## t_B = Vector of bootstrap samples
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">newdataj7</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;A&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;B&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;D&quot;</span><span class="hl std">))</span>
+<span class="hl std">(j7.pred</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">predict</span><span class="hl std">(j7.list,</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;state&quot;</span><span class="hl std">,</span> <span class="hl kwc">newdata</span> <span class="hl std">= newdataj7,</span> <span class="hl kwc">appendData</span> <span class="hl std">= T))</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Predicted    SE  lower  upper Unit
+## 1     42.26 19.08  19.06  96.08    A
+## 2     74.26 21.14  46.42 119.17    B
+## 3    238.65 99.12 122.43 469.17    D
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">(</span><span class="hl kwd">parboot</span><span class="hl std">(j7.e3,</span> <span class="hl kwc">statistic</span> <span class="hl std">= est,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">))</span>  <span class="hl com">#439 (143 - 699), df=44</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j7.e3, statistic = est, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##               t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## lam(Int)   382.7          -5.20           142.42        0.480
+## lam(UnitB)  15.5          -2.14             8.83        0.504
+## lam(UnitD)  41.6          -6.85            26.99        0.520
+## 
+## t_B quantiles:
+##              0%  2.5% 25% 50% 75% 97.5% 100%
+## lam(Int)   35.2 141.0 288 377 476   696  939
+## lam(UnitB)  5.7   8.1  12  15  20    39  103
+## lam(UnitD)  9.4  19.1  32  43  57   112  374
+## 
+## t0 = Original statistic compuated from data
+## t_B = Vector of bootstrap samples
+</pre></div>
+</div></div>
+
+
+<p>Data from the 8th of July</p>
+<div class="chunk" id="unnamed-chunk-13"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">j8.h1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J8,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;halfnorm&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j8.h2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j8.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j8.h3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j8.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j8.h4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j8.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+
+<span class="hl std">j8.e1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J8,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;exp&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j8.e2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j8.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j8.e3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j8.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j8.e4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j8.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+
+<span class="hl std">j8.list</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">fitList</span><span class="hl std">(</span><span class="hl kwc">`H ~1 ~1`</span> <span class="hl std">= j8.h1,</span> <span class="hl kwc">`H ~Unit ~1`</span> <span class="hl std">= j8.h2,</span> <span class="hl kwc">`H ~1 ~Unit`</span> <span class="hl std">= j8.h3,</span>
+    <span class="hl kwc">`H ~Unit ~Unit`</span> <span class="hl std">= j8.h4,</span> <span class="hl kwc">`E ~1 ~1`</span> <span class="hl std">= j8.e1,</span> <span class="hl kwc">`E ~Unit ~1`</span> <span class="hl std">= j8.e2,</span> <span class="hl kwc">`E ~1 ~Unit`</span> <span class="hl std">= j8.e3,</span>
+    <span class="hl kwc">`E ~Unit ~Unit`</span> <span class="hl std">= j8.e4)</span>
+<span class="hl kwd">modSel</span><span class="hl std">(j8.list)</span>  <span class="hl com">#j8.e2 is AIC best</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##               nPars    AIC delta   AICwt cumltvWt
+## E ~Unit ~1        5 260.79  0.00 0.48535     0.49
+## H ~Unit ~1        5 262.63  1.85 0.19285     0.68
+## E ~1 ~Unit        5 263.35  2.57 0.13453     0.81
+## H ~1 ~Unit        5 263.80  3.01 0.10755     0.92
+## H ~Unit ~Unit     8 265.72  4.93 0.04129     0.96
+## E ~Unit ~Unit     8 265.96  5.18 0.03650     1.00
+## E ~1 ~1           2 273.01 12.22 0.00108     1.00
+## H ~1 ~1           2 273.46 12.67 0.00086     1.00
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">(pb.j8.e2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">parboot</span><span class="hl std">(j8.e2,</span> <span class="hl kwc">statistic</span> <span class="hl std">= chisq,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">))</span>  <span class="hl com">#passed test</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j8.e2, statistic = chisq, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##    t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## 1 181            NaN               NA           NA
+## 
+## t_B quantiles:
+</pre></div>
+<div class="error"><pre class="knitr r">## Error: missing values and NaN's not allowed if 'na.rm' is FALSE
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">newdataj8</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;A&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;B&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;C&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;D&quot;</span><span class="hl std">))</span>
+<span class="hl std">(</span><span class="hl kwd">predict</span><span class="hl std">(j8.list,</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;state&quot;</span><span class="hl std">,</span> <span class="hl kwc">newdata</span> <span class="hl std">= newdataj8,</span> <span class="hl kwc">appendData</span> <span class="hl std">= T))</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Predicted    SE lower  upper Unit
+## 1     50.65 18.56 34.13  77.26    A
+## 2     58.47 13.22 39.64  87.16    B
+## 3     71.25 21.65 46.52 110.98    C
+## 4     66.17 18.86 41.44 110.43    D
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">(</span><span class="hl kwd">parboot</span><span class="hl std">(j8.e2,</span> <span class="hl kwc">statistic</span> <span class="hl std">= est,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">))</span>  <span class="hl com">#531 (396 - 798), df=53</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j8.e2, statistic = est, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##           t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## lam(Int) 531            -37              101        0.623
+## 
+## t_B quantiles:
+##           0% 2.5% 25% 50% 75% 97.5% 100%
+## lam(Int) 323  391 497 558 625   801  994
+## 
+## t0 = Original statistic compuated from data
+## t_B = Vector of bootstrap samples
+</pre></div>
+</div></div>
+
+
+<p>Data from the 12th of July</p>
+<div class="chunk" id="unnamed-chunk-14"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">j12.h1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J12,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;halfnorm&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j12.h2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j12.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j12.h3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j12.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j12.h4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j12.h1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+
+<span class="hl std">j12.e1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">distsamp</span><span class="hl std">(</span><span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">, J12,</span> <span class="hl kwc">keyfun</span> <span class="hl std">=</span> <span class="hl str">&quot;exp&quot;</span><span class="hl std">,</span> <span class="hl kwc">output</span> <span class="hl std">=</span> <span class="hl str">&quot;density&quot;</span><span class="hl std">,</span> <span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;BFGS&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">unitsOut</span> <span class="hl std">=</span> <span class="hl str">&quot;ha&quot;</span><span class="hl std">,</span> <span class="hl kwc">se</span> <span class="hl std">= T)</span>
+<span class="hl std">j12.e2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j12.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl num">1</span><span class="hl std">)</span>
+<span class="hl std">j12.e3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j12.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl num">1</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+<span class="hl std">j12.e4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">update</span><span class="hl std">(j12.e1,</span> <span class="hl kwc">formula</span> <span class="hl std">=</span> <span class="hl opt">~</span><span class="hl std">Unit</span> <span class="hl opt">~</span> <span class="hl std">Unit)</span>
+
+<span class="hl std">j12.list</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">fitList</span><span class="hl std">(</span><span class="hl kwc">`H ~1 ~1`</span> <span class="hl std">= j12.h1,</span> <span class="hl kwc">`H ~Unit ~1`</span> <span class="hl std">= j12.h2,</span> <span class="hl kwc">`H ~1 ~Unit`</span> <span class="hl std">= j12.h3,</span>
+    <span class="hl kwc">`H ~Unit ~Unit`</span> <span class="hl std">= j12.h4,</span> <span class="hl kwc">`E ~1 ~1`</span> <span class="hl std">= j12.e1,</span> <span class="hl kwc">`E ~Unit ~1`</span> <span class="hl std">= j12.e2,</span> <span class="hl kwc">`E ~1 ~Unit`</span> <span class="hl std">= j12.e3,</span>
+    <span class="hl kwc">`E ~Unit ~Unit`</span> <span class="hl std">= j12.e4)</span>
+<span class="hl kwd">modSel</span><span class="hl std">(j12.list)</span>  <span class="hl com">#j12.h4 is AIC best</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##               nPars   AIC delta AICwt cumltvWt
+## H ~Unit ~Unit     4 72.31  0.00 0.288     0.29
+## E ~Unit ~Unit     4 72.47  0.16 0.266     0.55
+## H ~Unit ~1        3 72.60  0.29 0.249     0.80
+## E ~Unit ~1        3 74.16  1.84 0.115     0.92
+## E ~1 ~1           2 76.75  4.43 0.031     0.95
+## H ~1 ~1           2 77.14  4.83 0.026     0.98
+## E ~1 ~Unit        3 78.46  6.15 0.013     0.99
+## H ~1 ~Unit        3 78.86  6.54 0.011     1.00
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">(pb.j12.e4</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">parboot</span><span class="hl std">(j12.e4,</span> <span class="hl kwc">statistic</span> <span class="hl std">= chisq,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">))</span>  <span class="hl com">#passed test</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j12.e4, statistic = chisq, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##     t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## 1 43.9            NaN               NA           NA
+## 
+## t_B quantiles:
+</pre></div>
+<div class="error"><pre class="knitr r">## Error: missing values and NaN's not allowed if 'na.rm' is FALSE
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">newdataj12</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(</span><span class="hl kwc">Unit</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;B&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;C&quot;</span><span class="hl std">))</span>
+<span class="hl std">(</span><span class="hl kwd">predict</span><span class="hl std">(j12.list,</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;state&quot;</span><span class="hl std">,</span> <span class="hl kwc">newdata</span> <span class="hl std">= newdataj12,</span> <span class="hl kwc">appendData</span> <span class="hl std">= T))</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   Predicted    SE lower  upper Unit
+## 1     64.88 36.86 27.54 154.63    B
+## 2     32.88 16.78 15.18  71.68    C
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">(</span><span class="hl kwd">parboot</span><span class="hl std">(j12.h4,</span> <span class="hl kwc">statistic</span> <span class="hl std">= est,</span> <span class="hl kwc">nsim</span> <span class="hl std">=</span> <span class="hl num">1000</span><span class="hl std">))</span>  <span class="hl com">#523 (176 - 1655), df = 14</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call: parboot(object = j12.h4, statistic = est, nsim = 1000)
+## 
+## Parametric Bootstrap Statistics:
+##                t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
+## lam(Int)   520.15         -115.5           497.84        0.579
+## lam(UnitC)   3.13           -1.1             3.38        0.548
+## 
+## t_B quantiles:
+##               0%   2.5%   25%   50%   75% 97.5% 100%
+## lam(Int)   81.90 201.85 403.6 546.9 694.1  1699 5668
+## lam(UnitC)  0.23   0.68   2.1   3.4   5.4    12   36
+## 
+## t0 = Original statistic compuated from data
+## t_B = Vector of bootstrap samples
+</pre></div>
+</div></div>
+
+
+<p>Now we will create figure 4. I write a function to generate the points and CIs</p>
+<div class="chunk" id="unnamed-chunk-15"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">moneyShot</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">) {</span>
+    <span class="hl std">where</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">1</span><span class="hl std">]</span>
+    <span class="hl std">dot</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">2</span><span class="hl std">]</span>
+    <span class="hl std">uc</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">3</span><span class="hl std">]</span>
+    <span class="hl std">lc</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">4</span><span class="hl std">]</span>
+    <span class="hl kwd">segments</span><span class="hl std">(where, uc, where, lc,</span> <span class="hl kwc">lwd</span> <span class="hl std">=</span> <span class="hl num">3.5</span><span class="hl std">)</span>
+    <span class="hl kwd">points</span><span class="hl std">(where, dot,</span> <span class="hl kwc">pch</span> <span class="hl std">=</span> <span class="hl num">15</span><span class="hl std">,</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl std">}</span>
+
+<span class="hl std">moneyShot2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">) {</span>
+    <span class="hl std">where</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">1</span><span class="hl std">]</span>
+    <span class="hl std">dot</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">2</span><span class="hl std">]</span>
+    <span class="hl std">uc</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">3</span><span class="hl std">]</span>
+    <span class="hl std">lc</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">4</span><span class="hl std">]</span>
+    <span class="hl kwd">segments</span><span class="hl std">(where, uc, where, lc,</span> <span class="hl kwc">lwd</span> <span class="hl std">=</span> <span class="hl num">3.5</span><span class="hl std">)</span>
+    <span class="hl kwd">points</span><span class="hl std">(where, dot,</span> <span class="hl kwc">pch</span> <span class="hl std">=</span> <span class="hl num">17</span><span class="hl std">,</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl str">&quot;black &quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl std">}</span>
+
+<span class="hl std">moneyShot3</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">x</span><span class="hl std">) {</span>
+    <span class="hl std">where</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">1</span><span class="hl std">]</span>
+    <span class="hl std">dot</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">2</span><span class="hl std">]</span>
+    <span class="hl std">uc</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">3</span><span class="hl std">]</span>
+    <span class="hl std">lc</span> <span class="hl kwb">&lt;-</span> <span class="hl std">x[</span><span class="hl num">4</span><span class="hl std">]</span>
+    <span class="hl kwd">segments</span><span class="hl std">(where, uc, where, lc,</span> <span class="hl kwc">lwd</span> <span class="hl std">=</span> <span class="hl num">3.5</span><span class="hl std">)</span>
+    <span class="hl kwd">points</span><span class="hl std">(where, dot,</span> <span class="hl kwc">pch</span> <span class="hl std">=</span> <span class="hl num">19</span><span class="hl std">,</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl str">&quot;light grey&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl std">}</span>
+</pre></div>
+</div></div>
+
+<div class="chunk" id="unnamed-chunk-16"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">plot</span><span class="hl std">(</span><span class="hl num">3</span><span class="hl opt">:</span><span class="hl num">10</span><span class="hl std">,</span> <span class="hl kwd">seq</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">210</span><span class="hl std">,</span> <span class="hl kwc">length.out</span> <span class="hl std">=</span> <span class="hl num">8</span><span class="hl std">),</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;n&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylab</span> <span class="hl std">=</span> <span class="hl str">&quot;Butterflies / ha&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">xaxt</span> <span class="hl std">=</span> <span class="hl str">&quot;n&quot;</span><span class="hl std">,</span> <span class="hl kwc">xlab</span> <span class="hl std">=</span> <span class="hl str">&quot;July 2011&quot;</span><span class="hl std">,</span> <span class="hl kwc">las</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">cex.axis</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">,</span> <span class="hl kwc">cex.lab</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">)</span>  <span class="hl com">#will need to add axis eventually</span>
+<span class="hl kwd">axis</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">at</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">3</span><span class="hl std">,</span> <span class="hl num">4</span><span class="hl std">,</span> <span class="hl num">5</span><span class="hl std">,</span> <span class="hl num">6</span><span class="hl std">,</span> <span class="hl num">7</span><span class="hl std">,</span> <span class="hl num">8</span><span class="hl std">,</span> <span class="hl num">9</span><span class="hl std">,</span> <span class="hl num">10</span><span class="hl std">),</span> <span class="hl kwc">lab</span> <span class="hl std">=</span> <span class="hl kwd">expression</span><span class="hl std">(</span><span class="hl num">3</span><span class="hl std">,</span> <span class="hl num">4</span><span class="hl std">,</span> <span class="hl num">5</span><span class="hl std">,</span> <span class="hl num">6</span><span class="hl std">,</span> <span class="hl num">7</span><span class="hl std">,</span> <span class="hl num">8</span><span class="hl std">,</span>
+    <span class="hl num">12</span><span class="hl std">,</span> <span class="hl num">13</span><span class="hl std">),</span> <span class="hl kwc">cex.axis</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">,</span> <span class="hl kwc">cex.lab</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">)</span>
+
+<span class="hl com"># 4 July, 2012 (ABCD)</span>
+<span class="hl kwd">moneyShot</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">3.8</span><span class="hl std">,</span> <span class="hl num">142</span><span class="hl std">,</span> <span class="hl num">79</span><span class="hl std">,</span> <span class="hl num">205</span><span class="hl std">))</span>  <span class="hl com">#Unit A</span>
+<span class="hl kwd">moneyShot2</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">4</span><span class="hl std">,</span> <span class="hl num">147</span><span class="hl std">,</span> <span class="hl num">93</span><span class="hl std">,</span> <span class="hl num">201</span><span class="hl std">))</span>  <span class="hl com">#Unit B</span>
+<span class="hl kwd">moneyShot3</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">4.2</span><span class="hl std">,</span> <span class="hl num">147</span><span class="hl std">,</span> <span class="hl num">93</span><span class="hl std">,</span> <span class="hl num">202</span><span class="hl std">))</span>  <span class="hl com">#Unit C</span>
+
+<span class="hl com"># 6 July, 2012 (ABD)</span>
+<span class="hl kwd">moneyShot</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">5.9</span><span class="hl std">,</span> <span class="hl num">57</span><span class="hl std">,</span> <span class="hl num">5.6</span><span class="hl std">,</span> <span class="hl num">108</span><span class="hl std">))</span>  <span class="hl com">#Unit A</span>
+<span class="hl kwd">moneyShot2</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">6.1</span><span class="hl std">,</span> <span class="hl num">106</span><span class="hl std">,</span> <span class="hl num">55</span><span class="hl std">,</span> <span class="hl num">158</span><span class="hl std">))</span>  <span class="hl com">#Unit B</span>
+
+
+<span class="hl com"># 7 July, 2012 (ABD)</span>
+<span class="hl kwd">moneyShot</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">6.9</span><span class="hl std">,</span> <span class="hl num">42</span><span class="hl std">,</span> <span class="hl num">4.8</span><span class="hl std">,</span> <span class="hl num">79.6</span><span class="hl std">))</span>  <span class="hl com">#Unit A</span>
+<span class="hl kwd">moneyShot2</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">7.1</span><span class="hl std">,</span> <span class="hl num">74</span><span class="hl std">,</span> <span class="hl num">32</span><span class="hl std">,</span> <span class="hl num">115</span><span class="hl std">))</span>  <span class="hl com">#Unit B</span>
+
+<span class="hl com"># 8 July, 2012</span>
+<span class="hl kwd">moneyShot</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">7.8</span><span class="hl std">,</span> <span class="hl num">50</span><span class="hl std">,</span> <span class="hl num">14</span><span class="hl std">,</span> <span class="hl num">87</span><span class="hl std">))</span>  <span class="hl com">#Unit A</span>
+<span class="hl kwd">moneyShot2</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">8</span><span class="hl std">,</span> <span class="hl num">58</span><span class="hl std">,</span> <span class="hl num">32</span><span class="hl std">,</span> <span class="hl num">84</span><span class="hl std">))</span>  <span class="hl com">#Unit B</span>
+<span class="hl kwd">moneyShot3</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">8.2</span><span class="hl std">,</span> <span class="hl num">71</span><span class="hl std">,</span> <span class="hl num">28</span><span class="hl std">,</span> <span class="hl num">113</span><span class="hl std">))</span>  <span class="hl com">#Unit C</span>
+
+<span class="hl com"># 12 July, 2012 #Note the difference in date and where it is plotted</span>
+<span class="hl kwd">moneyShot2</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">8.9</span><span class="hl std">,</span> <span class="hl num">64</span><span class="hl std">,</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl num">137</span><span class="hl std">))</span>
+<span class="hl kwd">moneyShot3</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">9.1</span><span class="hl std">,</span> <span class="hl num">32</span><span class="hl std">,</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl num">65</span><span class="hl std">))</span>
+
+<span class="hl com"># Sample sizes excluding unit D</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">4</span><span class="hl std">,</span> <span class="hl num">213</span><span class="hl std">,</span> <span class="hl str">&quot;n = 103&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">)</span>  <span class="hl com">#n for J4</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">6</span><span class="hl std">,</span> <span class="hl num">166</span><span class="hl std">,</span> <span class="hl str">&quot;n = 58&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">)</span>  <span class="hl com">#n for J6</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">7</span><span class="hl std">,</span> <span class="hl num">123</span><span class="hl std">,</span> <span class="hl str">&quot;n = 45&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">)</span>  <span class="hl com">#n for J7</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">8</span><span class="hl std">,</span> <span class="hl num">121</span><span class="hl std">,</span> <span class="hl str">&quot;n = 54&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">)</span>  <span class="hl com">#n for J8</span>
+<span class="hl kwd">text</span><span class="hl std">(</span><span class="hl num">9</span><span class="hl std">,</span> <span class="hl num">144</span><span class="hl std">,</span> <span class="hl str">&quot;n = 15&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">)</span>  <span class="hl com">#n for J12</span>
+
+<span class="hl kwd">legend</span><span class="hl std">(</span><span class="hl str">&quot;topright&quot;</span><span class="hl std">,</span> <span class="hl kwc">legend</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;Unit A&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;Unit B&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;Unit C&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;95% CI&quot;</span><span class="hl std">),</span> <span class="hl kwc">col</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;dark grey&quot;</span><span class="hl std">,</span>
+    <span class="hl str">&quot;black&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;light grey&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;black&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;black&quot;</span><span class="hl std">),</span> <span class="hl kwc">pch</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">15</span><span class="hl std">,</span> <span class="hl num">17</span><span class="hl std">,</span> <span class="hl num">19</span><span class="hl std">,</span> <span class="hl num">NA</span><span class="hl std">),</span> <span class="hl kwc">lwd</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">NA</span><span class="hl std">,</span>
+    <span class="hl num">NA</span><span class="hl std">,</span> <span class="hl num">NA</span><span class="hl std">,</span> <span class="hl num">3.5</span><span class="hl std">),</span> <span class="hl kwc">pt.cex</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1.4</span><span class="hl std">,</span> <span class="hl num">1.4</span><span class="hl std">,</span> <span class="hl num">1.4</span><span class="hl std">,</span> <span class="hl num">NA</span><span class="hl std">),</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.2</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-16.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" class="plot" /></div></div>
+
+
+<p>Lastly, some simple calculations to examine the efficiency of this method over "timed-meander" and "mark-release-recapture" surveys</p>
+
+<div class="chunk" id="unnamed-chunk-17"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com"># MRR costs 8 persons * 5 days * $15/hour *10 hours/day</span>
+<span class="hl num">8</span> <span class="hl opt">*</span> <span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">15</span> <span class="hl opt">*</span> <span class="hl num">10</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 6000
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># TM 2 persons * 5 days * $15/hour * 5 hours/day</span>
+<span class="hl num">2</span> <span class="hl opt">*</span> <span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">15</span> <span class="hl opt">*</span> <span class="hl num">3</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 450
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com"># Distance five hours for set up (once) 1 person * 5 days * 5 hours/day *</span>
+<span class="hl com"># $15/hour + 5*15 (set up cost)</span>
+<span class="hl num">1</span> <span class="hl opt">*</span> <span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">15</span> <span class="hl opt">+</span> <span class="hl std">(</span><span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">15</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 450
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">Cost</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">matrix</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">8</span> <span class="hl opt">*</span> <span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">15</span> <span class="hl opt">*</span> <span class="hl num">10</span><span class="hl std">,</span> <span class="hl num">2</span> <span class="hl opt">*</span> <span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">15</span> <span class="hl opt">*</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl num">1</span> <span class="hl opt">*</span> <span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">15</span> <span class="hl opt">+</span> <span class="hl std">(</span><span class="hl num">5</span> <span class="hl opt">*</span> <span class="hl num">15</span><span class="hl std">)),</span>
+    <span class="hl kwc">nrow</span> <span class="hl std">=</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl kwc">ncol</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">byrow</span> <span class="hl std">= T,</span> <span class="hl kwc">dimnames</span> <span class="hl std">=</span> <span class="hl kwd">list</span><span class="hl std">(</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;MRR&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;TM&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;Distance&quot;</span><span class="hl std">),</span>
+        <span class="hl str">&quot;Dollars&quot;</span><span class="hl std">))</span>
+<span class="hl std">Cost</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##          Dollars
+## MRR         6000
+## TM           450
+## Distance     450
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl num">450</span><span class="hl opt">/</span><span class="hl num">6000</span>  <span class="hl com">#cost is ~7.5%</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 0.075
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">Days</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">seq</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">21</span><span class="hl std">)</span>
+<span class="hl std">MRR</span> <span class="hl kwb">&lt;-</span> <span class="hl num">4</span> <span class="hl opt">*</span> <span class="hl num">15</span> <span class="hl opt">*</span> <span class="hl num">8</span>
+<span class="hl std">TM</span> <span class="hl kwb">&lt;-</span> <span class="hl num">2</span> <span class="hl opt">*</span> <span class="hl num">15</span> <span class="hl opt">*</span> <span class="hl num">3</span>
+<span class="hl std">Dist</span> <span class="hl kwb">&lt;-</span> <span class="hl num">3</span> <span class="hl opt">*</span> <span class="hl num">15</span>
+
+<span class="hl std">Mday</span> <span class="hl kwb">&lt;-</span> <span class="hl std">MRR</span> <span class="hl opt">*</span> <span class="hl std">Days</span>
+<span class="hl std">Tdays</span> <span class="hl kwb">&lt;-</span> <span class="hl std">TM</span> <span class="hl opt">*</span> <span class="hl std">Days</span>
+<span class="hl std">Ddays</span> <span class="hl kwb">&lt;-</span> <span class="hl std">Dist</span> <span class="hl opt">*</span> <span class="hl std">Days</span>
+<span class="hl com"># need to add cost of setting up transect 5*15</span>
+<span class="hl std">Ddays</span> <span class="hl kwb">&lt;-</span> <span class="hl std">Ddays</span> <span class="hl opt">+</span> <span class="hl num">75</span>
+<span class="hl std">Ddays</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##  [1]  120  165  210  255  300  345  390  435  480  525  570  615  660  705
+## [15]  750  795  840  885  930  975 1020
+</pre></div>
+</div></div>
+
+
+<div class="chunk" id="unnamed-chunk-18"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">plot</span><span class="hl std">(Days, Mday,</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;l&quot;</span><span class="hl std">,</span> <span class="hl kwc">lwd</span> <span class="hl std">=</span> <span class="hl num">3.5</span><span class="hl std">,</span> <span class="hl kwc">lty</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">ylab</span> <span class="hl std">=</span> <span class="hl str">&quot;Cost USD&quot;</span><span class="hl std">,</span> <span class="hl kwc">ylim</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span>
+    <span class="hl num">10000</span><span class="hl std">),</span> <span class="hl kwc">yaxt</span> <span class="hl std">=</span> <span class="hl str">&quot;n&quot;</span><span class="hl std">,</span> <span class="hl kwc">cex.axis</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">,</span> <span class="hl kwc">cex.lab</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl kwd">axis</span><span class="hl std">(</span><span class="hl num">2</span><span class="hl std">,</span> <span class="hl kwc">at</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl num">1000</span><span class="hl std">,</span> <span class="hl num">2000</span><span class="hl std">,</span> <span class="hl num">3000</span><span class="hl std">,</span> <span class="hl num">4000</span><span class="hl std">,</span> <span class="hl num">5000</span><span class="hl std">,</span> <span class="hl num">6000</span><span class="hl std">,</span> <span class="hl num">7000</span><span class="hl std">,</span> <span class="hl num">8000</span><span class="hl std">,</span> <span class="hl num">9000</span><span class="hl std">,</span> <span class="hl num">10000</span><span class="hl std">),</span>
+    <span class="hl kwc">lab</span> <span class="hl std">=</span> <span class="hl kwd">expression</span><span class="hl std">(</span><span class="hl str">&quot;0&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;1K&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;2K&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;3K&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;4K&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;5K&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;6K&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;7K&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;8K&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;9K&quot;</span><span class="hl std">,</span>
+        <span class="hl str">&quot;10K&quot;</span><span class="hl std">),</span> <span class="hl kwc">las</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">,</span> <span class="hl kwc">cex.axis</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">,</span> <span class="hl kwc">cex.lab</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+<span class="hl kwd">lines</span><span class="hl std">(Tdays,</span> <span class="hl kwc">lwd</span> <span class="hl std">=</span> <span class="hl num">3.5</span><span class="hl std">,</span> <span class="hl kwc">lty</span> <span class="hl std">=</span> <span class="hl num">3</span><span class="hl std">)</span>
+<span class="hl kwd">lines</span><span class="hl std">(Ddays,</span> <span class="hl kwc">lwd</span> <span class="hl std">=</span> <span class="hl num">3.5</span><span class="hl std">,</span> <span class="hl kwc">lty</span> <span class="hl std">=</span> <span class="hl num">6</span><span class="hl std">)</span>
+<span class="hl kwd">legend</span><span class="hl std">(</span><span class="hl str">&quot;topleft&quot;</span><span class="hl std">,</span> <span class="hl kwc">legend</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;MRR&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;TM&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;HDS&quot;</span><span class="hl std">),</span> <span class="hl kwc">lwd</span> <span class="hl std">=</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl kwc">lty</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl std">,</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl num">6</span><span class="hl std">),</span>
+    <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1.5</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-18.png" title="plot of chunk unnamed-chunk-18" alt="plot of chunk unnamed-chunk-18" class="plot" /></div></div>
+
+</body>
+</html>
