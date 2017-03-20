@@ -159,3 +159,12 @@ font-weight: 400;
 text-decoration: underline;
 word-wrap: break-word;}
 body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing: grayscale}
+.linkStyle_52{font-family: 'ArialMT','Arial',sans-serif;
+font-size: 18px; 
+font-style: italic;
+color: #0432FF;
+text-decoration: underline; 
+/*000#00F900#932091#FF2600*/
+word-wrap: break-word;}
+a.linkStyle_52:visited{color:#932091; text-decoration:underline;}
+a.linkStyle_52:hover{color:#FF2600; text-decoration:underline;}
