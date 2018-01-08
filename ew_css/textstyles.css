@@ -172,3 +172,5 @@ a.linkStyle_52:hover{color:#FF2600; text-decoration:underline;}
 font-size: 18px; 
 font-style: italic;
 word-wrap: break-word;}
+.animhidden{opacity: 0}
+.animvisible{opacity: 1}
