@@ -174,3 +174,12 @@ word-wrap: break-word;}
 body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing: grayscale}
 .animhidden{opacity: 0}
 .animvisible{opacity: 1}
+.linkStyle_58{font-family: 'Courier',monospace;
+font-size: 36px; 
+margin:0;
+color: #0432FF;
+word-wrap: break-word;}
+a.linkStyle_58:visited{color:#932091; text-decoration:none;}
+a.linkStyle_58:hover{color:#FF2600; text-decoration:none;}
+.animhidden{opacity: 0}
+.animvisible{opacity: 1}
